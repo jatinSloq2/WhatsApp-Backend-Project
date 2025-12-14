@@ -2,10 +2,28 @@
 // FILE 3: backend/session-service/src/services/session.service.js
 // ============================================
 
-import Session from '../models/session.model.js';
+// import Session from '../models/session.model.js';
+import mongoose from 'mongoose';
 import baileys from './baileys.service.js';
 import { AppError } from '../../../shared/middleware/errorHandler.js';
 import QRCode from 'qrcode';
+
+let Session;
+
+const getSessionModel = async () => {
+  if (Session) return Session;
+
+  if (mongoose.connection.readyState !== 1) {
+    throw new Error('MongoDB not connected before accessing Session model');
+  }
+
+  const module = await import('../models/session.model.js');
+  Session = module.default;
+
+  return Session;
+};
+
+
 
 class SessionService {
   async createSession(userId, phoneNumber, sessionName) {
@@ -21,20 +39,20 @@ class SessionService {
       if (existingSession.status === 'connected') {
         return existingSession;
       }
-      
+
       // If exists but not connected, start it
       const sessionId = existingSession.sessionId;
       await baileys.createSession(sessionId);
-      
+
       existingSession.status = 'initializing';
       await existingSession.save();
-      
+
       return existingSession;
     }
 
     // Create new session
     const sessionId = `session_${userId}_${Date.now()}`;
-    
+
     const session = new Session({
       sessionId,
       userId,
@@ -94,11 +112,11 @@ class SessionService {
       // Try to start session if not started
       if (session.status === 'disconnected') {
         await baileys.createSession(sessionId);
-        
+
         // Wait a bit for QR generation
         await new Promise(resolve => setTimeout(resolve, 2000));
         const newQrText = baileys.getQR(sessionId);
-        
+
         if (newQrText) {
           const qrDataUrl = await QRCode.toDataURL(newQrText);
           session.qrCode = qrDataUrl;
@@ -107,7 +125,7 @@ class SessionService {
           return { qr: qrDataUrl, text: newQrText };
         }
       }
-      
+
       throw new AppError('QR code not available', 404);
     }
 
@@ -126,10 +144,10 @@ class SessionService {
     }
 
     const baileyStatus = baileys.getSessionStatus(sessionId);
-    
+
     if (baileyStatus !== session.status) {
       session.status = baileyStatus;
-      
+
       if (baileyStatus === 'connected') {
         session.connectedAt = new Date();
         session.lastSeen = new Date();
@@ -138,7 +156,7 @@ class SessionService {
       } else if (baileyStatus === 'disconnected') {
         session.disconnectedAt = new Date();
       }
-      
+
       await session.save();
     }
 
@@ -207,7 +225,7 @@ class SessionService {
       session.connectedAt = new Date();
       session.retryCount = 0;
       session.errorMessage = null;
-      
+
       if (metadata.user) {
         session.phoneNumber = metadata.user.id.split(':')[0];
         session.metadata = {
@@ -231,11 +249,12 @@ class SessionService {
   // Restore sessions on server start
   async restoreSessions() {
     try {
-      const activeSessions = await Session.find({
+      const SessionModel = await getSessionModel();
+
+      const activeSessions = await SessionModel.find({
         isActive: true,
         status: { $in: ['connected', 'qr_waiting', 'initializing'] }
       });
-
       console.log(`Restoring ${activeSessions.length} active sessions...`);
 
       for (const session of activeSessions) {

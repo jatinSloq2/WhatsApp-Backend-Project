@@ -3,14 +3,13 @@
 // ============================================
 
 import makeWASocket, {
-  useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
-  makeInMemoryStore
+  useMultiFileAuthState
 } from '@whiskeysockets/baileys';
-import P from 'pino';
 import fs from 'fs';
 import path from 'path';
+import P from 'pino';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);

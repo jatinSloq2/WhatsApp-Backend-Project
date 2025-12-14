@@ -139,7 +139,7 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     // Connect to database
-    await database.connect();
+    await database.connect(process.env.MONGODB_URI);
 
     // Restore active sessions
     await sessionService.restoreSessions();

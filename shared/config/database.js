@@ -5,6 +5,7 @@
 import mongoose from "mongoose";
 
 
+mongoose.set('bufferCommands', false);
 
 class Database {
   constructor() {
@@ -24,7 +25,8 @@ class Database {
       };
 
       this.connection = await mongoose.connect(uri, options);
-
+      // ✅ ENSURE FULL READINESS
+      await mongoose.connection.asPromise();
       console.log(`
 ╔════════════════════════════════════════════╗
 ║   MongoDB Connected Successfully           ║
