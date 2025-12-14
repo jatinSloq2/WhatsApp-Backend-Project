@@ -1,0 +1,53 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "A microservices-based WhatsApp management platform with Next.js frontend and MongoDB database.",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd shared && npm install && cd ../auth-service && npm install && cd ../session-service && npm install && cd ..",
+    "dev": "concurrently -n \"AUTH,SESSION\" -c \"blue,green\" \"npm run dev:auth\" \"npm run dev:session\"",
+    "dev:auth": "cd auth-service && npm run dev",
+    "dev:session": "cd session-service && npm run dev",
+    "start": "concurrently -n \"AUTH,SESSION\" -c \"blue,green\" \"npm run start:auth\" \"npm run start:session\"",
+    "start:auth": "cd auth-service && npm start",
+    "start:session": "cd session-service && npm start",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs",
+    "pm2:delete": "pm2 delete ecosystem.config.cjs",
+    "pm2:logs": "pm2 logs",
+    "pm2:monit": "pm2 monit",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:build": "docker-compose build",
+    "setup": "npm run install:all && cp auth-service/.env.example auth-service/.env && cp session-service/.env.example session-service/.env",
+    "clean": "rm -rf */node_modules */package-lock.json node_modules package-lock.json"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-validator": "^7.0.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jatinSloq2/WhatsApp-Backend-Project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jatinSloq2/WhatsApp-Backend-Project/issues"
+  },
+  "homepage": "https://github.com/jatinSloq2/WhatsApp-Backend-Project#readme"
+}

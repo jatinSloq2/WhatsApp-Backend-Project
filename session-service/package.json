@@ -1,0 +1,27 @@
+{
+  "name": "session-service",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "socket.io": "^4.6.0",
+    "@whiskeysockets/baileys": "^6.5.0",
+    "qrcode": "^1.5.3",
+    "pino": "^8.16.2",
+    "jsonwebtoken": "^9.0.2",
+    "winston": "^3.11.0",
+    "express-validator": "^7.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
