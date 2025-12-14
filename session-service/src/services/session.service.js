@@ -2,32 +2,27 @@
 // FILE 3: backend/session-service/src/services/session.service.js
 // ============================================
 
-// import Session from '../models/session.model.js';
 import mongoose from 'mongoose';
 import baileys from './baileys.service.js';
 import { AppError } from '../../../shared/middleware/errorHandler.js';
 import QRCode from 'qrcode';
 
-let Session;
+// DO NOT import Session at the top
+let SessionModel = null;
 
-const getSessionModel = async () => {
-  if (Session) return Session;
-
-  if (mongoose.connection.readyState !== 1) {
-    throw new Error('MongoDB not connected before accessing Session model');
+// Lazy load the Session model
+const getSessionModel = () => {
+  if (!SessionModel) {
+    // Import synchronously only after MongoDB is connected
+    SessionModel = mongoose.model('Session');
   }
-
-  const module = await import('../models/session.model.js');
-  Session = module.default;
-
-  return Session;
+  return SessionModel;
 };
-
-
 
 class SessionService {
   async createSession(userId, phoneNumber, sessionName) {
-    // Check if session already exists
+    const Session = getSessionModel(); // Get model lazily
+    
     const existingSession = await Session.findOne({
       userId,
       phoneNumber,
@@ -35,12 +30,10 @@ class SessionService {
     });
 
     if (existingSession) {
-      // If already connected, return it
       if (existingSession.status === 'connected') {
         return existingSession;
       }
 
-      // If exists but not connected, start it
       const sessionId = existingSession.sessionId;
       await baileys.createSession(sessionId);
 
@@ -50,7 +43,6 @@ class SessionService {
       return existingSession;
     }
 
-    // Create new session
     const sessionId = `session_${userId}_${Date.now()}`;
 
     const session = new Session({
@@ -62,20 +54,18 @@ class SessionService {
     });
 
     await session.save();
-
-    // Start Baileys session
     await baileys.createSession(sessionId);
 
     return session;
   }
 
   async getSession(sessionId, userId) {
+    const Session = getSessionModel();
     const session = await Session.findOne({ sessionId, userId });
     if (!session) {
       throw new AppError('Session not found', 404);
     }
 
-    // Update status from Baileys
     const baileyStatus = baileys.getSessionStatus(sessionId);
     if (baileyStatus !== session.status) {
       session.status = baileyStatus;
@@ -86,10 +76,10 @@ class SessionService {
   }
 
   async getUserSessions(userId) {
+    const Session = getSessionModel();
     const sessions = await Session.find({ userId, isActive: true })
       .sort({ createdAt: -1 });
 
-    // Update statuses
     for (const session of sessions) {
       const baileyStatus = baileys.getSessionStatus(session.sessionId);
       if (baileyStatus !== session.status) {
@@ -102,6 +92,7 @@ class SessionService {
   }
 
   async getQRCode(sessionId, userId) {
+    const Session = getSessionModel();
     const session = await Session.findOne({ sessionId, userId });
     if (!session) {
       throw new AppError('Session not found', 404);
@@ -109,11 +100,8 @@ class SessionService {
 
     const qrText = baileys.getQR(sessionId);
     if (!qrText) {
-      // Try to start session if not started
       if (session.status === 'disconnected') {
         await baileys.createSession(sessionId);
-
-        // Wait a bit for QR generation
         await new Promise(resolve => setTimeout(resolve, 2000));
         const newQrText = baileys.getQR(sessionId);
 
@@ -138,6 +126,7 @@ class SessionService {
   }
 
   async getSessionStatus(sessionId, userId) {
+    const Session = getSessionModel();
     const session = await Session.findOne({ sessionId, userId });
     if (!session) {
       throw new AppError('Session not found', 404);
@@ -169,6 +158,7 @@ class SessionService {
   }
 
   async logoutSession(sessionId, userId) {
+    const Session = getSessionModel();
     const session = await Session.findOne({ sessionId, userId });
     if (!session) {
       throw new AppError('Session not found', 404);
@@ -185,6 +175,7 @@ class SessionService {
   }
 
   async deleteSession(sessionId, userId) {
+    const Session = getSessionModel();
     const session = await Session.findOne({ sessionId, userId });
     if (!session) {
       throw new AppError('Session not found', 404);
@@ -197,6 +188,7 @@ class SessionService {
   }
 
   async updateSession(sessionId, userId, updates) {
+    const Session = getSessionModel();
     const session = await Session.findOne({ sessionId, userId });
     if (!session) {
       throw new AppError('Session not found', 404);
@@ -213,8 +205,8 @@ class SessionService {
     return session;
   }
 
-  // Update session status (called by Baileys events)
   async updateSessionStatus(sessionId, status, metadata = {}) {
+    const Session = getSessionModel();
     const session = await Session.findOne({ sessionId });
     if (!session) return;
 
@@ -246,12 +238,11 @@ class SessionService {
     await session.save();
   }
 
-  // Restore sessions on server start
   async restoreSessions() {
     try {
-      const SessionModel = await getSessionModel();
-
-      const activeSessions = await SessionModel.find({
+      const Session = getSessionModel();
+      
+      const activeSessions = await Session.find({
         isActive: true,
         status: { $in: ['connected', 'qr_waiting', 'initializing'] }
       });

@@ -1,11 +1,10 @@
 // ============================================
-// FILE 1: backend/shared/config/database.js
+// FILE 1: backend/shared/config/database.js (FIXED)
 // ============================================
-
 import mongoose from "mongoose";
 
-
-mongoose.set('bufferCommands', false);
+// Increase buffer timeout to handle model registration
+mongoose.set('bufferTimeoutMS', 30000); // 30 seconds
 
 class Database {
   constructor() {
@@ -14,6 +13,7 @@ class Database {
 
   async connect(uri) {
     if (mongoose.connection.readyState === 1) {
+      console.log('MongoDB already connected');
       return mongoose.connection;
     }
 
@@ -24,9 +24,12 @@ class Database {
         socketTimeoutMS: 45000,
       };
 
-      this.connection = await mongoose.connect(uri, options);
-      // ✅ ENSURE FULL READINESS
-      await mongoose.connection.asPromise();
+      // Connect using the default connection
+      await mongoose.connect(uri, options);
+      
+      // Store reference to the default connection
+      this.connection = mongoose.connection;
+
       console.log(`
 ╔════════════════════════════════════════════╗
 ║   MongoDB Connected Successfully           ║
@@ -43,15 +46,10 @@ class Database {
         console.log('⚠️ Mongoose disconnected');
       });
 
-      process.on('SIGINT', async () => {
-        await this.disconnect();
-        process.exit(0);
-      });
-
       return this.connection;
     } catch (error) {
       console.error('❌ MongoDB connection failed:', error);
-      process.exit(1);
+      throw error;
     }
   }
 
@@ -66,6 +64,10 @@ class Database {
 
   isConnected() {
     return mongoose.connection.readyState === 1;
+  }
+
+  getConnection() {
+    return mongoose.connection;
   }
 }
 

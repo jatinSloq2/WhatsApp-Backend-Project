@@ -138,13 +138,19 @@ app.use(errorHandler);
 
 const startServer = async () => {
   try {
-    // Connect to database
+    console.log('🔌 Connecting to MongoDB...');
+    
+    // Connect to database - this now properly waits for connection
     await database.connect(process.env.MONGODB_URI);
+    
+    console.log('📦 Loading session model...');
+    
+    // Import the model
+    await import('./models/session.model.js');
+    
+    console.log('✅ MongoDB is ready, starting server...');
 
-    // Restore active sessions
-    await sessionService.restoreSessions();
-
-    // Start server
+    // Start HTTP server
     httpServer.listen(PORT, () => {
       console.log(`
 ╔════════════════════════════════════════════╗
@@ -156,8 +162,19 @@ const startServer = async () => {
 ╚════════════════════════════════════════════╝
       `);
     });
+    
+    // Restore sessions in background (non-blocking)
+    // Add a small delay to ensure model is fully registered
+    setTimeout(() => {
+      console.log('🔄 Starting session restoration...');
+      sessionService.restoreSessions()
+        .then(() => console.log('✅ Sessions restored successfully'))
+        .catch(err => console.error('⚠️  Session restoration failed:', err.message));
+    }, 1000); // 1 second delay
+      
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error.message);
+    console.error('Stack trace:', error.stack);
     process.exit(1);
   }
 };
@@ -167,6 +184,15 @@ startServer();
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully');
+  httpServer.close(() => {
+    console.log('HTTP server closed');
+  });
+  await database.disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('\nSIGINT received, shutting down gracefully');
   httpServer.close(() => {
     console.log('HTTP server closed');
   });
