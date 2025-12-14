@@ -87,6 +87,7 @@ curl http://localhost:8001/auth/health
 ```
 
 Expected response:
+
 ```json
 {
   "status": "healthy",
@@ -108,6 +109,7 @@ Expected response:
 **POST** `/auth/register`
 
 **Request Body:**
+
 ```json
 {
   "email": "john@example.com",
@@ -119,6 +121,7 @@ Expected response:
 ```
 
 **Response (201):**
+
 ```json
 {
   "success": true,
@@ -156,14 +159,16 @@ Expected response:
 **POST** `/auth/login`
 
 **Request Body:**
+
 ```json
 {
-  "identifier": "john@example.com",  // or "johndoe"
+  "identifier": "john@example.com", // or "johndoe"
   "password": "SecurePass123"
 }
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -193,6 +198,7 @@ Expected response:
 **POST** `/auth/refresh-token`
 
 **Request Body:**
+
 ```json
 {
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -200,6 +206,7 @@ Expected response:
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -218,11 +225,13 @@ Expected response:
 **GET** `/auth/me`
 
 **Headers:**
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -252,11 +261,13 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **PUT** `/auth/me`
 
 **Headers:**
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Request Body:**
+
 ```json
 {
   "fullName": "John Updated Doe",
@@ -266,6 +277,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -289,11 +301,13 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **POST** `/auth/logout`
 
 **Headers:**
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Request Body:**
+
 ```json
 {
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -301,6 +315,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -319,6 +334,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **POST** `/auth/forgot-password`
 
 **Request Body:**
+
 ```json
 {
   "email": "john@example.com"
@@ -326,6 +342,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -345,6 +362,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **POST** `/auth/reset-password`
 
 **Request Body:**
+
 ```json
 {
   "token": "abc123...",
@@ -353,6 +371,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -373,6 +392,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Example:** `/auth/verify-email/abc123def456`
 
 **Response (200):**
+
 ```json
 {
   "success": true,
@@ -389,6 +409,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ## 🧪 Testing with cURL
 
 ### Register
+
 ```bash
 curl -X POST http://localhost:8001/auth/register \
   -H "Content-Type: application/json" \
@@ -401,6 +422,7 @@ curl -X POST http://localhost:8001/auth/register \
 ```
 
 ### Login
+
 ```bash
 curl -X POST http://localhost:8001/auth/login \
   -H "Content-Type: application/json" \
@@ -411,6 +433,7 @@ curl -X POST http://localhost:8001/auth/login \
 ```
 
 ### Get Profile (Replace TOKEN)
+
 ```bash
 curl -X GET http://localhost:8001/auth/me \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
@@ -421,6 +444,7 @@ curl -X GET http://localhost:8001/auth/me \
 ## 🔐 JWT Token Structure
 
 ### Access Token Payload
+
 ```json
 {
   "userId": "65a1b2c3d4e5f6a7b8c9d0e1",
@@ -432,6 +456,7 @@ curl -X GET http://localhost:8001/auth/me \
 ```
 
 ### Refresh Token Payload
+
 ```json
 {
   "userId": "65a1b2c3d4e5f6a7b8c9d0e1",
@@ -453,17 +478,18 @@ curl -X GET http://localhost:8001/auth/me \
 
 ## 📊 Subscription Tiers & Limits
 
-| Tier | Sessions | Messages/Day | Campaigns/Month | Chatbots |
-|------|----------|--------------|-----------------|----------|
-| Free | 1 | 50 | 5 | 1 |
-| Pro | 3 | 250 | 20 | 5 |
-| Business | 10 | 1000 | Unlimited | 20 |
+| Tier     | Sessions | Messages/Day | Campaigns/Month | Chatbots |
+| -------- | -------- | ------------ | --------------- | -------- |
+| Free     | 1        | 50           | 5               | 1        |
+| Pro      | 3        | 250          | 20              | 5        |
+| Business | 10       | 1000         | Unlimited       | 20       |
 
 ---
 
 ## 🐛 Common Errors
 
 ### 400 Bad Request
+
 ```json
 {
   "success": false,
@@ -479,6 +505,7 @@ curl -X GET http://localhost:8001/auth/me \
 ```
 
 ### 401 Unauthorized
+
 ```json
 {
   "success": false,
@@ -489,6 +516,7 @@ curl -X GET http://localhost:8001/auth/me \
 ```
 
 ### 404 Not Found
+
 ```json
 {
   "success": false,

@@ -3,19 +3,22 @@ import { errorResponse } from '../../../shared/utils/response.util.js';
 
 export const validate = (validations) => {
   return async (req, res, next) => {
+    // Execute all validations
     await Promise.all(validations.map(validation => validation.run(req)));
-
+    
     const errors = validationResult(req);
-    if (errors.isEmpty()) {
-      return next();
+    
+    if (!errors.isEmpty()) {
+      const extractedErrors = errors.array().map(err => ({
+        field: err.param || err.path,
+        message: err.msg
+      }));
+      
+      errorResponse(res, 'Validation failed', 400, extractedErrors); // Remove return
+      return; // Just return to stop execution
     }
-
-    const extractedErrors = errors.array().map(err => ({
-      field: err.path,
-      message: err.msg
-    }));
-
-    return errorResponse(res, 'Validation failed', 400, extractedErrors);
+    
+    next();
   };
 };
 

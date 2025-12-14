@@ -7,7 +7,7 @@
 NODE_ENV=development
 
 # MongoDB
-MONGODB_URI=mongodb://localhost:27017/whatsapp_manager
+MONGODB_URI=mongodb://127.0.0.1:27017/whatsapp_manager
 # For production with MongoDB Atlas:
 # MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/whatsapp_manager
 
@@ -92,7 +92,7 @@ PORT=8001
 SERVICE_NAME=auth-service
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/whatsapp_manager
+MONGODB_URI=mongodb://127.0.0.1:27017/whatsapp_manager
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -123,7 +123,7 @@ PORT=8002
 SERVICE_NAME=session-service
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/whatsapp_manager
+MONGODB_URI=mongodb://127.0.0.1:27017/whatsapp_manager
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -149,7 +149,7 @@ PORT=8003
 SERVICE_NAME=message-service
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/whatsapp_manager
+MONGODB_URI=mongodb://127.0.0.1:27017/whatsapp_manager
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -174,7 +174,7 @@ PORT=8004
 SERVICE_NAME=bulk-service
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/whatsapp_manager
+MONGODB_URI=mongodb://127.0.0.1:27017/whatsapp_manager
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -200,7 +200,7 @@ PORT=8005
 SERVICE_NAME=chatbot-service
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/whatsapp_manager
+MONGODB_URI=mongodb://127.0.0.1:27017/whatsapp_manager
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -220,7 +220,7 @@ PORT=8006
 SERVICE_NAME=contact-service
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/whatsapp_manager
+MONGODB_URI=mongodb://127.0.0.1:27017/whatsapp_manager
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -238,7 +238,7 @@ PORT=8007
 SERVICE_NAME=analytics-service
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/whatsapp_manager
+MONGODB_URI=mongodb://127.0.0.1:27017/whatsapp_manager
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -259,7 +259,7 @@ PORT=8008
 SERVICE_NAME=notification-service
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/whatsapp_manager
+MONGODB_URI=mongodb://127.0.0.1:27017/whatsapp_manager
 
 # Redis
 REDIS_URL=redis://localhost:6379

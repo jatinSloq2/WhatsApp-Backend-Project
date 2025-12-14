@@ -108,21 +108,20 @@ userSchema.index({ username: 1 });
 userSchema.index({ isActive: 1 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
+userSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
+
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
 // Compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
 // Generate email verification token
-userSchema.methods.generateEmailVerificationToken = function() {
+userSchema.methods.generateEmailVerificationToken = function () {
   const token = crypto.randomBytes(32).toString('hex');
   this.emailVerificationToken = crypto
     .createHash('sha256')
@@ -133,7 +132,7 @@ userSchema.methods.generateEmailVerificationToken = function() {
 };
 
 // Generate password reset token
-userSchema.methods.generatePasswordResetToken = function() {
+userSchema.methods.generatePasswordResetToken = function () {
   const token = crypto.randomBytes(32).toString('hex');
   this.resetPasswordToken = crypto
     .createHash('sha256')
@@ -144,7 +143,7 @@ userSchema.methods.generatePasswordResetToken = function() {
 };
 
 // Update limits based on tier
-userSchema.methods.updateLimits = function() {
+userSchema.methods.updateLimits = function () {
   const limits = {
     free: { maxSessions: 1, maxMessagesPerDay: 50, maxCampaignsPerMonth: 5, maxChatbots: 1 },
     pro: { maxSessions: 3, maxMessagesPerDay: 250, maxCampaignsPerMonth: 20, maxChatbots: 5 },
@@ -154,7 +153,7 @@ userSchema.methods.updateLimits = function() {
 };
 
 // To JSON - remove sensitive fields
-userSchema.methods.toJSON = function() {
+userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.emailVerificationToken;
@@ -167,7 +166,7 @@ userSchema.methods.toJSON = function() {
 };
 
 // Static: Find by email or username
-userSchema.statics.findByEmailOrUsername = function(identifier) {
+userSchema.statics.findByEmailOrUsername = function (identifier) {
   return this.findOne({
     $or: [
       { email: identifier.toLowerCase() },

@@ -2,24 +2,28 @@
 // FILE 1: backend/shared/config/database.js
 // ============================================
 
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
+
+
 
 class Database {
   constructor() {
     this.connection = null;
   }
 
-  async connect() {
+  async connect(uri) {
+    if (mongoose.connection.readyState === 1) {
+      return mongoose.connection;
+    }
+
     try {
-      const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/whatsapp_auth';
-      
       const options = {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
       };
 
-      this.connection = await mongoose.connect(MONGODB_URI, options);
+      this.connection = await mongoose.connect(uri, options);
 
       console.log(`
 ╔════════════════════════════════════════════╗

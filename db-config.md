@@ -15,7 +15,7 @@ class Database {
 
   async connect() {
     try {
-      const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/whatsapp_manager';
+      const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/whatsapp_manager';
       
       const options = {
         useNewUrlParser: true,

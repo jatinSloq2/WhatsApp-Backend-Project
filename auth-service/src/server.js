@@ -15,7 +15,7 @@ import logger from '../../shared/utils/logger.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8001;
+const PORT = process.env.PORT;
 
 // ============================================
 // MIDDLEWARE
@@ -64,7 +64,8 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     // Connect to database
-    await database.connect();
+    console.log('MONGODB_URI:', process.env.MONGODB_URI);
+    await database.connect(process.env.MONGODB_URI);
 
     // Start server
     app.listen(PORT, () => {
