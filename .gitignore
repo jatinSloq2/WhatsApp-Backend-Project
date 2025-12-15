@@ -117,3 +117,5 @@ pids/
 # =========================
 *.tgz
 *.tar.gz
+
+baileys_auth/

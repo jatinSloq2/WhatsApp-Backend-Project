@@ -32,7 +32,7 @@ const sessionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['connected', 'disconnected', 'qr_waiting', 'initializing', 'error'],
+    enum: ['connected', 'disconnected', 'qr_waiting', 'initializing', 'error', "no_session"],
     default: 'disconnected',
     index: true
   },
