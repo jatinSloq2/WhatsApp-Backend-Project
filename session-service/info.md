@@ -7,14 +7,16 @@ backend/
 ├── session-service/
 │   ├── src/
 │   │   ├── controllers/
-│   │   │   └── session.controller.js    ✅ Created
+│   │   │   ├── session.controller.js    ✅ Created
+│   │   │   └── message.controller.js    ✅ Created
 │   │   ├── services/
 │   │   │   ├── baileys.service.js       ✅ Created
 │   │   │   └── session.service.js       ✅ Created
 │   │   ├── models/
 │   │   │   └── session.model.js         ✅ Created
 │   │   ├── routes/
-│   │   │   └── session.routes.js        ✅ Created
+│   │   │   ├── session.routes.js        ✅ Created
+│   │   │   └── message.routes.js        ✅ Created
 │   │   ├── middleware/
 │   │   │   └── validation.js            ✅ Created
 │   │   ├── events/
@@ -23,8 +25,7 @@ backend/
 │   ├── baileys_auth/                    📁 Will be auto-created
 │   ├── logs/                            📁 Will be auto-created
 │   ├── package.json                     ✅ Created
-│   ├── .env.example                     ✅ Created
-│   └── Dockerfile                       ✅ Created
+│   └── .env.example                     ✅ Created
 ```
 
 ---
@@ -328,6 +329,141 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 ---
 
+### 9️⃣ **Send Text Message**
+
+**POST** `/sessions/:sessionId/messages/send`
+
+**Headers:**
+```
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+**Request Body:**
+```json
+{
+  "to": "919876543210",
+  "message": "Hello! This is a test message."
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Message sent successfully",
+  "data": {
+    "messageId": "3EB0C7A6C2D4E5F6A7B8C9D0",
+    "status": "sent",
+    "timestamp": "2024-01-15T12:50:00.000Z"
+  },
+  "timestamp": "2024-01-15T12:50:00.000Z"
+}
+```
+
+**Note:** The `to` parameter should be in format `919876543210` (country code + number, no + symbol) or full JID format `919876543210@s.whatsapp.net`
+
+---
+
+### 🔟 **Send Media Message**
+
+**POST** `/sessions/:sessionId/messages/send-media`
+
+**Headers:**
+```
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: multipart/form-data
+```
+
+**Request Body (Form Data):**
+```
+media: [Binary file]
+to: 919876543210
+caption: Check out this image!
+mediaType: image (options: image, video, audio, document)
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "Media sent successfully",
+  "data": {
+    "messageId": "3EB0C7A6C2D4E5F6A7B8C9D0",
+    "status": "sent",
+    "timestamp": "2024-01-15T12:55:00.000Z"
+  },
+  "timestamp": "2024-01-15T12:55:00.000Z"
+}
+```
+
+**Media Types Supported:**
+- `image` - JPEG, PNG, WebP
+- `video` - MP4, 3GP, AVI
+- `audio` - MP3, OGG, AAC
+- `document` - PDF, DOC, DOCX, etc.
+
+---
+
+## 🔧 Internal API Endpoints
+
+These endpoints are used for inter-service communication (e.g., Message Service → Session Service). They do **not** require Bearer authentication.
+
+### 1️⃣1️⃣ **Send Message (Internal)**
+
+**POST** `/sessions/internal/messages/send`
+
+**Request Body:**
+```json
+{
+  "sessionId": "session_65a1b2c3_1705318200000",
+  "to": "919876543210",
+  "message": "Hello from Message Service!"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "messageId": "3EB0C7A6C2D4E5F6A7B8C9D0",
+    "status": "sent",
+    "timestamp": "2024-01-15T13:00:00.000Z"
+  }
+}
+```
+
+---
+
+### 1️⃣2️⃣ **Send Media (Internal)**
+
+**POST** `/sessions/internal/messages/send-media`
+
+**Request Body:**
+```json
+{
+  "sessionId": "session_65a1b2c3_1705318200000",
+  "to": "919876543210",
+  "mediaBuffer": "base64_encoded_media_data_here...",
+  "mediaType": "image",
+  "caption": "Sent via internal API"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "messageId": "3EB0C7A6C2D4E5F6A7B8C9D0",
+    "status": "sent",
+    "timestamp": "2024-01-15T13:05:00.000Z"
+  }
+}
+```
+
+---
+
 ## 🔌 WebSocket Events (Socket.io)
 
 ### **Connection**
@@ -469,7 +605,30 @@ curl -X GET http://localhost:8002/sessions/SESSION_ID/status \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-### **3. List All Sessions**
+### **3. Send Text Message**
+
+```bash
+curl -X POST http://localhost:8002/sessions/SESSION_ID/messages/send \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "919876543210",
+    "message": "Hello from Session Service!"
+  }'
+```
+
+### **4. Send Media Message**
+
+```bash
+curl -X POST http://localhost:8002/sessions/SESSION_ID/messages/send-media \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "media=@/path/to/image.jpg" \
+  -F "to=919876543210" \
+  -F "caption=Check this out!" \
+  -F "mediaType=image"
+```
+
+### **5. List All Sessions**
 
 ```bash
 curl -X GET http://localhost:8002/sessions \
@@ -504,6 +663,9 @@ curl -X GET http://localhost:8002/sessions \
 ✅ **Session persistence** - MongoDB storage
 ✅ **Session restoration** - Restores on server restart
 ✅ **Baileys v6+** - Latest WhatsApp Web API
+✅ **Message sending** - Text and media messages
+✅ **Media support** - Images, videos, audio, documents
+✅ **Internal API** - Inter-service communication
 
 ---
 
@@ -519,9 +681,9 @@ curl -X GET http://localhost:8002/sessions \
 
 ## 🔗 Integration with Frontend
 
-```javascript
-// Example: React component for WhatsApp connection
+### Example 1: React Component for WhatsApp Connection
 
+```javascript
 import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import axios from 'axios';
@@ -588,6 +750,140 @@ function WhatsAppConnect() {
           <h3>✅ Connected Successfully!</h3>
         </div>
       )}
+    </div>
+  );
+}
+```
+
+### Example 2: Send Message Component
+
+```javascript
+import { useState } from 'react';
+import axios from 'axios';
+
+function SendMessage({ sessionId }) {
+  const [to, setTo] = useState('');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.post(
+        `http://localhost:8002/sessions/${sessionId}/messages/send`,
+        { to, message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      alert('Message sent successfully!');
+      setMessage('');
+    } catch (error) {
+      alert('Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div>
+      <h3>Send WhatsApp Message</h3>
+      <input
+        type="text"
+        placeholder="Recipient (919876543210)"
+        value={to}
+        onChange={(e) => setTo(e.target.value)}
+      />
+      <textarea
+        placeholder="Your message"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+      />
+      <button onClick={handleSend} disabled={sending}>
+        {sending ? 'Sending...' : 'Send Message'}
+      </button>
+    </div>
+  );
+}
+```
+
+### Example 3: Send Media Component
+
+```javascript
+import { useState } from 'react';
+import axios from 'axios';
+
+function SendMedia({ sessionId }) {
+  const [to, setTo] = useState('');
+  const [caption, setCaption] = useState('');
+  const [file, setFile] = useState(null);
+  const [mediaType, setMediaType] = useState('image');
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async () => {
+    if (!file) {
+      alert('Please select a file');
+      return;
+    }
+
+    setSending(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const formData = new FormData();
+      formData.append('media', file);
+      formData.append('to', to);
+      formData.append('caption', caption);
+      formData.append('mediaType', mediaType);
+
+      await axios.post(
+        `http://localhost:8002/sessions/${sessionId}/messages/send-media`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      alert('Media sent successfully!');
+      setFile(null);
+      setCaption('');
+    } catch (error) {
+      alert('Failed to send media');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div>
+      <h3>Send Media</h3>
+      <input
+        type="text"
+        placeholder="Recipient (919876543210)"
+        value={to}
+        onChange={(e) => setTo(e.target.value)}
+      />
+      <select value={mediaType} onChange={(e) => setMediaType(e.target.value)}>
+        <option value="image">Image</option>
+        <option value="video">Video</option>
+        <option value="audio">Audio</option>
+        <option value="document">Document</option>
+      </select>
+      <input
+        type="file"
+        onChange={(e) => setFile(e.target.files[0])}
+      />
+      <input
+        type="text"
+        placeholder="Caption (optional)"
+        value={caption}
+        onChange={(e) => setCaption(e.target.value)}
+      />
+      <button onClick={handleSend} disabled={sending}>
+        {sending ? 'Sending...' : 'Send Media'}
+      </button>
     </div>
   );
 }
