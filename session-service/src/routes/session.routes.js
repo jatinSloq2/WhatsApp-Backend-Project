@@ -2,7 +2,7 @@
 import express from 'express';
 import { authenticate } from '../../../shared/middleware/auth.middleware.js';
 import * as sessionController from '../controllers/session.controller.js';
-import { uploadFile } from '../controllers/upload.controller.js';
+import { upload, uploadFile } from '../controllers/upload.controller.js';
 
 const router = express.Router();
 

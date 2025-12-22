@@ -1,6 +1,7 @@
 import axios from "axios";
 import Session from "../models/session.model.js";
 import * as whatsappService from "../services/baileys.service.js";
+import Campaign from "../models/campaign.model.js"
 
 /* -------------------------------------------------------------------------- */
 /*                        SESSION VALIDATION (FINAL)                           */
@@ -90,6 +91,9 @@ const isNumberOnWhatsApp = async (sock, jid) => {
 /* -------------------------------------------------------------------------- */
 
 export const sendMessage = async (req, res) => {
+
+  let campaign;
+
   try {
     const { id } = req.query;
     const { receiver, message } = req.body;
@@ -111,6 +115,15 @@ export const sendMessage = async (req, res) => {
     }
 
     const { sock } = sessionCheck;
+
+    campaign = await Campaign.create({
+      sessionId: id,
+      type: "single",
+      receiver,
+      message,
+      total: 1,
+      status: "running",
+    });
 
     const jid = formatPhoneNumber(receiver);
     if (!jid) {
@@ -166,6 +179,11 @@ export const sendMessage = async (req, res) => {
 
     const sent = await sock.sendMessage(jid, payload);
 
+    await Campaign.findByIdAndUpdate(campaign._id, {
+      sentCount: 1,
+      status: "completed",
+    });
+
     return res.json({
       success: true,
       message: "Message sent successfully",
@@ -176,6 +194,12 @@ export const sendMessage = async (req, res) => {
       },
     });
   } catch (error) {
+    if (campaign?._id) {
+      await Campaign.findByIdAndUpdate(campaign._id, {
+        failedCount: 1,
+        status: "failed",
+      });
+    }
     return res.status(500).json({
       success: false,
       message: "Failed to send message",
@@ -189,6 +213,8 @@ export const sendMessage = async (req, res) => {
 /* -------------------------------------------------------------------------- */
 
 export const bulkMessageSender = async (req, res) => {
+
+  let campaign;
   try {
     const { id, numbers, message, delay = 2000 } = req.body;
 
@@ -209,6 +235,15 @@ export const bulkMessageSender = async (req, res) => {
     }
 
     const { sock } = sessionCheck;
+
+    campaign = await Campaign.create({
+      sessionId: id,
+      type: "bulk",
+      numbers,
+      message,
+      total: numbers.length,
+      status: "running",
+    });
 
     res.json({
       success: true,
@@ -267,14 +302,27 @@ export const bulkMessageSender = async (req, res) => {
 
           await sock.sendMessage(jid, payload);
 
+          
           if (i < numbers.length - 1) {
             await new Promise((r) => setTimeout(r, delay));
           }
-        } catch {
+          await Campaign.findByIdAndUpdate(campaign._id, {
+            $inc: { sentCount: 1 },
+          });
+        } catch (err) {
+          await Campaign.findByIdAndUpdate(campaign._id, {
+            $inc: { failedCount: 1 },
+          });
           continue;
         }
       }
+      await Campaign.findByIdAndUpdate(campaign._id, {
+        status: "completed",
+      });
     })();
+
+
+
   } catch (error) {
     if (!res.headersSent) {
       res.status(500).json({

@@ -5,9 +5,10 @@ import express from 'express';
 import helmet from 'helmet';
 import database from '../../shared/config/database.js';
 import { errorHandler, notFoundHandler } from '../../shared/middleware/errorHandler.js';
-import sessionRoutes from './routes/session.routes.js';
-import messageRoutes from './routes/message.routes.js';
 import logger from '../../shared/utils/logger.js';
+import campaignRoutes from './routes/campaign.routes.js';
+import messageRoutes from './routes/message.routes.js';
+import sessionRoutes from './routes/session.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -23,6 +24,7 @@ app.use("/uploads", express.static("uploads"));
 // Routes
 app.use('/sessions', sessionRoutes);
 app.use('/messages', messageRoutes);
+app.use('/campaigns', campaignRoutes);
 
 app.use(helmet());
 app.use(cors({
