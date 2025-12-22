@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import database from '../../shared/config/database.js';
 import { errorHandler, notFoundHandler } from '../../shared/middleware/errorHandler.js';
 import sessionRoutes from './routes/session.routes.js';
+import messageRoutes from './routes/message.routes.js';
 import logger from '../../shared/utils/logger.js';
 
 // Load environment variables
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/sessions', sessionRoutes);
+app.use('/messages', messageRoutes);
 
 app.use(helmet());
 app.use(cors({

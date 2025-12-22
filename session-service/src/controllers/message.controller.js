@@ -1,181 +1,287 @@
-import baileys from '../services/baileys.service.js';
-import Session from '../models/session.model.js';
-import { successResponse } from '../../../shared/utils/response.util.js';
-import mongoose from 'mongoose';
+import axios from "axios";
+import Session from "../models/session.model.js";
+import * as whatsappService from "../services/baileys.service.js";
 
-export const sendMessage = async (req, res, next) => {
+/* -------------------------------------------------------------------------- */
+/*                        SESSION VALIDATION (FINAL)                           */
+/* -------------------------------------------------------------------------- */
+
+export const validateActiveSession = async (sessionId) => {
+  if (!sessionId) {
+    return {
+      ok: false,
+      status: 400,
+      message: "Session ID is required",
+    };
+  }
+
+  // 1. DB check
+  const dbSession = await Session.findOne({
+    sessionId,
+    isActive: true,
+  });
+
+  if (!dbSession) {
+    return {
+      ok: false,
+      status: 404,
+      message: "Session does not exist or is inactive",
+    };
+  }
+
+  // 2. Service status check
+  const statusInfo = await whatsappService.getSessionStatus(sessionId);
+
+  if (statusInfo.status !== "connected") {
+    return {
+      ok: false,
+      status: 400,
+      message: `Session not connected (status: ${statusInfo.status})`,
+    };
+  }
+
+  // 3. Socket existence check
+  const sock = whatsappService.getSession(sessionId);
+  if (!sock) {
+    return {
+      ok: false,
+      status: 404,
+      message: "Session not loaded in memory",
+    };
+  }
+
+  return {
+    ok: true,
+    sock,
+    dbSession,
+    statusInfo,
+  };
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                HELPERS                                     */
+/* -------------------------------------------------------------------------- */
+
+const downloadMedia = async (url) => {
+  const response = await axios.get(url, { responseType: "arraybuffer" });
+  return Buffer.from(response.data);
+};
+
+const formatPhoneNumber = (number) => {
+  let clean = String(number).replace(/\D/g, "");
+
+  if (clean.length === 10) clean = "91" + clean;
+  if (clean.length < 10) return null;
+
+  return `${clean}@s.whatsapp.net`;
+};
+
+const isNumberOnWhatsApp = async (sock, jid) => {
   try {
-    const { sessionId } = req.params;
-    const { to, message } = req.body;
-    
-    console.log('=== SEND MESSAGE DEBUG ===');
-    console.log('SessionId:', sessionId);
-    console.log('To:', to);
-    console.log('Message:', message);
+    const [result] = await sock.onWhatsApp(jid);
+    return Boolean(result?.exists);
+  } catch {
+    return false;
+  }
+};
 
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({
+/* -------------------------------------------------------------------------- */
+/*                             SEND SINGLE MESSAGE                             */
+/* -------------------------------------------------------------------------- */
+
+export const sendMessage = async (req, res) => {
+  try {
+    const { id } = req.query;
+    const { receiver, message } = req.body;
+
+    if (!receiver || !message || typeof message !== "object") {
+      return res.status(400).json({
         success: false,
-        message: 'Unauthorized'
+        message: "receiver and message object are required",
       });
     }
 
-    const session = await Session.findOne({ sessionId });
-    
-    console.log('Session found:', !!session);
-    console.log('DB Session status:', session?.status);
-    
-    if (!session) {
-      return res.status(404).json({
+    // ✅ CENTRAL SESSION VALIDATION
+    const sessionCheck = await validateActiveSession(id);
+    if (!sessionCheck.ok) {
+      return res.status(sessionCheck.status).json({
         success: false,
-        message: 'Session not found'
+        message: sessionCheck.message,
       });
     }
 
-    // Check ACTUAL Baileys status, not just DB status
-    const actualStatus = baileys.getSessionStatus(sessionId);
-    console.log('Baileys actual status:', actualStatus);
-    
-    if (actualStatus !== 'connected') {
-      // Sync DB status with actual status
-      if (session.status !== actualStatus) {
-        await Session.findOneAndUpdate(
-          { sessionId },
-          { status: actualStatus }
-        );
+    const { sock } = sessionCheck;
+
+    const jid = formatPhoneNumber(receiver);
+    if (!jid) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid phone number",
+      });
+    }
+
+    const exists = await isNumberOnWhatsApp(sock, jid);
+    if (!exists) {
+      return res.status(400).json({
+        success: false,
+        message: "Number not registered on WhatsApp",
+      });
+    }
+
+    let payload = null;
+
+    if (message.text) payload = { text: message.text };
+
+    const mediaUrl =
+      message?.image?.url ||
+      message?.video?.url ||
+      message?.audio?.url ||
+      message?.document?.url ||
+      null;
+
+    if (mediaUrl) {
+      const buffer = await downloadMedia(mediaUrl);
+      const caption = message.caption || "";
+      const mimetype = message.mimetype || "";
+
+      if (message.image?.url) payload = { image: buffer, caption };
+      else if (message.video?.url) payload = { video: buffer, caption };
+      else if (message.audio?.url) payload = { audio: buffer, mimetype };
+      else if (message.document?.url) {
+        payload = {
+          document: buffer,
+          mimetype,
+          caption,
+          fileName: mediaUrl.split("/").pop() || "file",
+        };
       }
-      
+    }
+
+    if (!payload) {
       return res.status(400).json({
         success: false,
-        message: `Session not ready. Current status: ${actualStatus}. Please wait for connection to complete or scan QR code again.`,
-        actualStatus
+        message: "Unsupported message payload",
       });
     }
 
-    // Additional validation - check if socket has user
-    const sock = baileys.getSession(sessionId);
-    if (!sock?.user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Session exists but not authenticated. Please reconnect.',
-        actualStatus: 'not_authenticated'
-      });
-    }
+    const sent = await sock.sendMessage(jid, payload);
 
-    console.log('Socket authenticated, user:', sock.user.id);
-
-    const result = await baileys.sendMessage(sessionId, to, message);
-    
-    console.log('✓ Message sent successfully:', result?.key?.id);
-    console.log('=== END DEBUG ===');
-    
-    return successResponse(
-      res,
-      {
-        messageId: result.key.id,
-        status: 'sent',
-        timestamp: new Date(),
-        to: result.key.remoteJid
+    return res.json({
+      success: true,
+      message: "Message sent successfully",
+      data: {
+        messageId: sent.key.id,
+        to: jid,
+        timestamp: sent.messageTimestamp,
       },
-      'Message sent successfully'
-    );
-  } catch (error) {
-    console.error('❌ Send message error:', error.message);
-    console.error('Stack:', error.stack);
-    next(error);
-  }
-};
-
-export const sendMediaMessage = async (req, res, next) => {
-  try {
-    const { sessionId } = req.params;
-    const { to, caption, mediaType } = req.body;
-    const userId = req.user.userId;
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Media file required'
-      });
-    }
-
-    const session = await Session.findOne({ sessionId, userId });
-    if (!session) {
-      return res.status(404).json({
-        success: false,
-        message: 'Session not found'
-      });
-    }
-
-    // Check actual status
-    const actualStatus = baileys.getSessionStatus(sessionId);
-    if (actualStatus !== 'connected') {
-      return res.status(400).json({
-        success: false,
-        message: `Session not ready. Status: ${actualStatus}`
-      });
-    }
-
-    const result = await baileys.sendMedia(
-      sessionId,
-      to,
-      req.file.buffer,
-      mediaType || 'image',
-      caption
-    );
-
-    return successResponse(res, {
-      messageId: result.key.id,
-      status: 'sent',
-      timestamp: new Date()
-    }, 'Media sent successfully');
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Internal endpoint
-export const sendMessageInternal = async (req, res, next) => {
-  try {
-    const { sessionId, to, message } = req.body;
-    
-    // Verify actual connection
-    const actualStatus = baileys.getSessionStatus(sessionId);
-    if (actualStatus !== 'connected') {
-      return res.status(400).json({
-        success: false,
-        message: `Session not ready: ${actualStatus}`
-      });
-    }
-    
-    const result = await baileys.sendMessage(sessionId, to, message);
-    return successResponse(res, {
-      messageId: result.key.id,
-      status: 'sent',
-      timestamp: new Date()
     });
   } catch (error) {
-    next(error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send message",
+      error: error.message,
+    });
   }
 };
 
-export const sendMediaInternal = async (req, res, next) => {
+/* -------------------------------------------------------------------------- */
+/*                             BULK MESSAGE SENDER                             */
+/* -------------------------------------------------------------------------- */
+
+export const bulkMessageSender = async (req, res) => {
   try {
-    const { sessionId, to, mediaBuffer, mediaType, caption } = req.body;
-    const buffer = Buffer.from(mediaBuffer, 'base64');
-    const result = await baileys.sendMedia(
-      sessionId,
-      to,
-      buffer,
-      mediaType,
-      caption
-    );
-    return successResponse(res, {
-      messageId: result.key.id,
-      status: 'sent',
-      timestamp: new Date()
+    const { id, numbers, message, delay = 2000 } = req.body;
+
+    if (!Array.isArray(numbers) || numbers.length === 0 || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "id, numbers array and message are required",
+      });
+    }
+
+    // ✅ CENTRAL SESSION VALIDATION
+    const sessionCheck = await validateActiveSession(id);
+    if (!sessionCheck.ok) {
+      return res.status(sessionCheck.status).json({
+        success: false,
+        message: sessionCheck.message,
+      });
+    }
+
+    const { sock } = sessionCheck;
+
+    res.json({
+      success: true,
+      message: "Bulk request accepted",
+      totalNumbers: numbers.length,
     });
+
+    const mediaUrl =
+      message?.image?.url ||
+      message?.video?.url ||
+      message?.audio?.url ||
+      message?.document?.url ||
+      null;
+
+    let mediaBuffer = null;
+    let mediaType = null;
+    const caption = message.caption || "";
+    const mimetype = message.mimetype || "";
+
+    if (mediaUrl) {
+      mediaBuffer = await downloadMedia(mediaUrl);
+      if (message.image?.url) mediaType = "image";
+      else if (message.video?.url) mediaType = "video";
+      else if (message.audio?.url) mediaType = "audio";
+      else if (message.document?.url) mediaType = "document";
+    }
+
+    (async () => {
+      for (let i = 0; i < numbers.length; i++) {
+        try {
+          const jid = formatPhoneNumber(numbers[i]);
+          if (!jid) continue;
+
+          const exists = await isNumberOnWhatsApp(sock, jid);
+          if (!exists) continue;
+
+          let payload = null;
+
+          if (message.text) payload = { text: message.text };
+
+          if (mediaBuffer) {
+            if (mediaType === "image") payload = { image: mediaBuffer, caption };
+            else if (mediaType === "video") payload = { video: mediaBuffer, caption };
+            else if (mediaType === "audio") payload = { audio: mediaBuffer, mimetype };
+            else if (mediaType === "document") {
+              payload = {
+                document: mediaBuffer,
+                mimetype,
+                caption,
+                fileName: mediaUrl.split("/").pop() || "file",
+              };
+            }
+          }
+
+          if (!payload) continue;
+
+          await sock.sendMessage(jid, payload);
+
+          if (i < numbers.length - 1) {
+            await new Promise((r) => setTimeout(r, delay));
+          }
+        } catch {
+          continue;
+        }
+      }
+    })();
   } catch (error) {
-    next(error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: "Bulk sending failed",
+        error: error.message,
+      });
+    }
   }
 };
