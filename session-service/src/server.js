@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import database from '../../shared/config/database.js';
 import { errorHandler, notFoundHandler } from '../../shared/middleware/errorHandler.js';
 import sessionRoutes from './routes/session.routes.js';
+import logger from '../../shared/utils/logger.js';
 
 // Load environment variables
 dotenv.config();
