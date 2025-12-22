@@ -1,69 +1,28 @@
-// ============================================
-// FILE 6: backend/session-service/src/routes/session.routes.js
-// ============================================
-
+// routes/session.routes.js
 import express from 'express';
-import * as sessionController from '../controllers/session.controller.js';
-import * as validation from '../middleware/validation.js';
 import { authenticate } from '../../../shared/middleware/auth.middleware.js';
+import * as sessionController from '../controllers/session.controller.js';
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(authenticate);
+router.use(authenticate)
 
-// Session management
-router.post(
-  '/',
-  validation.validate(validation.createSessionValidation),
-  sessionController.createSession
-);
+// Create new session and get QR
+router.post('/create', sessionController.createSession);
 
-router.get('/', sessionController.getSessions);
+// Get session status
+router.get('/status/:sessionId', sessionController.getSessionStatus);
 
-router.get(
-  '/:sessionId',
-  validation.validate(validation.sessionIdValidation),
-  sessionController.getSession
-);
+// Delete session
+router.delete('/:sessionId', sessionController.deleteSession);
 
-router.get(
-  '/:sessionId/qr',
-  validation.validate(validation.sessionIdValidation),
-  sessionController.getQRCode
-);
+// List all active sessions
+router.get('/list', sessionController.listSessions);
 
-router.get(
-  '/:sessionId/status',
-  validation.validate(validation.sessionIdValidation),
-  sessionController.getSessionStatus
-);
+// Get all sessions from DB (including inactive)
+router.get('/db/all', sessionController.getAllSessionsFromDB);
 
-router.put(
-  '/:sessionId',
-  validation.validate(validation.updateSessionValidation),
-  sessionController.updateSession
-);
-
-router.post(
-  '/:sessionId/logout',
-  validation.validate(validation.sessionIdValidation),
-  sessionController.logoutSession
-);
-
-router.delete(
-  '/:sessionId',
-  validation.validate(validation.sessionIdValidation),
-  sessionController.deleteSession
-);
-
-// Health check
-router.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    service: 'session-service',
-    timestamp: new Date().toISOString()
-  });
-});
+// Restore sessions after server restart
+router.post('/restore', sessionController.restoreSessions);
 
 export default router;
