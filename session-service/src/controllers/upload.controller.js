@@ -76,7 +76,7 @@ export const uploadFile = async (req, res) => {
         fileName: req.file.filename,
         mimetype: req.file.mimetype,
         size: req.file.size,
-        url: `/uploads/${req.file.filename}`,
+        url: `http://localhost${process.env.PORT}/uploads/${req.file.filename}`,
       },
     });
   } catch (error) {

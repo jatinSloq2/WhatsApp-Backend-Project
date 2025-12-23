@@ -25,4 +25,4 @@ const campaignSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
-export default Campaign = mongoose.model("Campaign", campaignSchema);
+export default mongoose.model("Campaign", campaignSchema);
